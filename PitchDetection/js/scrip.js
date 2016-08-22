@@ -96,10 +96,10 @@ function tick(event) {
 	
 	for(i = 0; i < circles.length; i++){
 		if(circles[i].x < 0){
-			circles[i].x=canvas.width;
-			circles[i].y=(noteFromPitch(pitch)-69)*12;
+			circles[i].x=canvas.width-20;
+			circles[i].y=(floatNoteFromPitch(pitch)-54)*20;//69)*12;
 		}
-		circles[i].x -= 2;
+		circles[i].x -= 5;
 		//circles[i].y = Math.sin(t)*(20+t/5)+canvas.height/2;
 	}
 	stage.update(event);
@@ -112,7 +112,7 @@ function init(){
 	canvas = document.getElementById("demoCanvas");
 	
 	//for(i = 0; i < 10; i++){
-	for(x = 0; x < canvas.width; x+=2){
+	for(var x = 0; x < canvas.width-20; x+=2){
 		t = x;//(x+10*i);
 		circles.push(new createjs.Shape());
 		var color  = '#'+(Math.random()*0xFFFFFF<<0).toString(16);
@@ -120,6 +120,23 @@ function init(){
 		circles[circles.length-1].x = t;
 		circles[circles.length-1].y = Math.sin(t/70)*100+canvas.height/2+Math.cos(t/10)*20;
 		stage.addChild(circles[circles.length-1]);
+	}
+	
+	for(var i = 54; i < 100; i+=1){
+		noteY = (i-54)*20;
+		
+		var line = new createjs.Shape();
+		line.graphics.setStrokeStyle(1);
+		line.graphics.beginStroke(createjs.Graphics.getHSL(230, 20, 70));
+		line.graphics.moveTo(0, noteY);
+		line.graphics.lineTo(canvas.width,noteY);
+		line.graphics.endStroke();
+		stage.addChild(line);
+		
+		var text = new createjs.Text(noteStrings[i%12], "12px Arial", "#ff7700");
+		text.x = canvas.width-20;
+		text.y = noteY - 6;
+		stage.addChild(text);
 	}
 	//}
 	/*
@@ -131,5 +148,5 @@ function init(){
 	*/
 	stage.update();
 	createjs.Ticker.addEventListener("tick", tick);
-	createjs.Ticker.setFPS(60);
+	createjs.Ticker.setFPS(120);
 }

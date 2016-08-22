@@ -46,7 +46,7 @@ window.onload = function() {
 	MAX_SIZE = Math.max(4,Math.floor(audioContext.sampleRate/5000));	// corresponds to a 5kHz signal
 	
 	var request = new XMLHttpRequest();
-	request.open("GET", "../sounds/canon.ogg", true);
+	request.open("GET", "../sounds/scale.ogg", true);
 	request.responseType = "arraybuffer";
 	request.onload = function() {
 	  audioContext.decodeAudioData( request.response, function(buffer) { 
@@ -215,6 +215,11 @@ function noteFromPitch( frequency ) {
 	return Math.round( noteNum ) + 69;
 }
 
+function floatNoteFromPitch( frequency ) {
+	var noteNum = 12 * (Math.log( frequency / 440 )/Math.log(2) );
+	return noteNum + 69;
+}
+
 function frequencyFromNoteNumber( note ) {
 	return 440 * Math.pow(2,(note-69)/12);
 }
@@ -260,9 +265,12 @@ function autoCorrelateFloat( buf, sampleRate ) {
 */
 
 var MIN_SAMPLES = 0;  // will be initialized when AudioContext is created.
-var GOOD_ENOUGH_CORRELATION = 0.9; // this is the "bar" for how close a correlation needs to be
+var GOOD_ENOUGH_CORRELATION = 0.95; // this is the "bar" for how close a correlation needs to be
+var CLIP_PERCENTAGE = 0.2;
 
 function autoCorrelate( buf, sampleRate ) {
+	MIN_SAMPLES = 10;
+	console.log(sampleRate);
 	var SIZE = buf.length;
 	var MAX_SAMPLES = Math.floor(SIZE/2);
 	var best_offset = -1;
@@ -270,10 +278,19 @@ function autoCorrelate( buf, sampleRate ) {
 	var rms = 0;
 	var foundGoodCorrelation = false;
 	var correlations = new Array(MAX_SAMPLES);
-
+	var max_val = 0; // used for clipping the signal in analysis
+	
 	for (var i=0;i<SIZE;i++) {
 		var val = buf[i];
 		rms += val*val;
+		if (val > max_val){
+			max_val = val;
+		}
+	}
+	for (var i=0;i<SIZE;i++) {
+		if (Math.abs(buf[i]) < max_val * CLIP_PERCENTAGE){
+			buf[i] = 0;
+		}
 	}
 	rms = Math.sqrt(rms/SIZE);
 	if (rms<0.01) // not enough signal
