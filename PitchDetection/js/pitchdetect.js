@@ -40,11 +40,11 @@ var detectorElem,
 	detuneAmount;
 
 window.onload = function() {
-	init();
 	
 	audioContext = new AudioContext();
 	MAX_SIZE = Math.max(4,Math.floor(audioContext.sampleRate/5000));	// corresponds to a 5kHz signal
 	
+	init();
 	var request = new XMLHttpRequest();
 	request.open("GET", "../sounds/scale.ogg", true);
 	request.responseType = "arraybuffer";
@@ -209,6 +209,7 @@ var buflen = 1024;
 var buf = new Float32Array( buflen );
 
 var noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+var noteStringsMaj = ["C", "D", "E", "F", "G", "A", "B"];
 
 function noteFromPitch( frequency ) {
 	var noteNum = 12 * (Math.log( frequency / 440 )/Math.log(2) );
@@ -265,8 +266,8 @@ function autoCorrelateFloat( buf, sampleRate ) {
 */
 
 var MIN_SAMPLES = 0;  // will be initialized when AudioContext is created.
-var GOOD_ENOUGH_CORRELATION = 0.95; // this is the "bar" for how close a correlation needs to be
-var CLIP_PERCENTAGE = 0.2;
+var GOOD_ENOUGH_CORRELATION = 0.97; // this is the "bar" for how close a correlation needs to be
+var CLIP_PERCENTAGE = 0.30;
 
 function autoCorrelate( buf, sampleRate ) {
 	MIN_SAMPLES = 10;
@@ -293,7 +294,7 @@ function autoCorrelate( buf, sampleRate ) {
 		}
 	}
 	rms = Math.sqrt(rms/SIZE);
-	if (rms<0.01) // not enough signal
+	if (rms<0.015) // not enough signal
 		return -1;
 
 	var lastCorrelation=1;

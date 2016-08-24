@@ -1,9 +1,12 @@
 var stage;
 var canvas;
 var circles=[];
+var rectangles=[];
 var ys = [];
 var pitches = [];
-
+var click = null;
+var clickNode = null;
+var FPS = 120;
 /////////
 //START//
 /////////
@@ -31,6 +34,7 @@ var hot = new chroma.ColorScale({
     limits:[0, 300]
 });
 */
+
 
 function drawSpectrogram(array) {
 
@@ -63,11 +67,17 @@ function drawSpectrogram(array) {
 //END//
 ///////
 
+function yFromNote(canvas, note){
+    return canvas.height - (note-54)*20;
+}
 
 
-
+var count = 0;
+var step = 6;
 function tick(event) {
-	// we use information from the analyzer node
+    console.log(count);
+    
+       // we use information from the analyzer node
 	// to draw the volume
 	// get the average for the first channel
 	if (analyser){
@@ -97,16 +107,60 @@ function tick(event) {
 	for(i = 0; i < circles.length; i++){
 		if(circles[i].x < 0){
 			circles[i].x=canvas.width-20;
-			circles[i].y=(floatNoteFromPitch(pitch)-54)*20;//69)*12;
+			circles[i].y=yFromNote(canvas, floatNoteFromPitch(pitch));//69)*12;
 		}
-		circles[i].x -= 5;
+		circles[i].x -= step;
+        console.log("Circ");
 		//circles[i].y = Math.sin(t)*(20+t/5)+canvas.height/2;
 	}
-	stage.update(event);
+    
+    var iRect = rectangles.length;
+    while (iRect--){
+        if(rectangles[iRect].x < 0){
+            stage.removeChild(rectangles[iRect]);
+            rectangles.splice(iRect, 1);
+        }
+        else{
+            rectangles[iRect].x -= step;
+            console.log("Rect");
+        }
+    }
+ 
+    if (!(count%(FPS/2))){
+        rectangles.push(new createjs.Shape());
+		var color  = createjs.Graphics.getHSL(230, 10, 55);
+		rectangles[rectangles.length-1].graphics.beginFill(color).drawRect(0, 0, 2, Math.abs(yFromNote(canvas, 64)-yFromNote(canvas, 77)));
+        rectangles[rectangles.length-1].x = canvas.width;
+		rectangles[rectangles.length-1].y = yFromNote(canvas, 77);
+
+		stage.addChild(rectangles[rectangles.length-1]);
+
+        clickNode = audioContext.createBufferSource();
+        clickNode.buffer = click;
+        clickNode.loop = false;
+        clickNode.connect( audioContext.destination );
+        console.log("Yup");
+        
+        clickNode.start( 0 );
+        count = 0;
+    }
+    count+=1;
+
+    stage.update(event);
 }
 
 function init(){
-	 stage = new createjs.Stage("demoCanvas");
+	request = new XMLHttpRequest();
+	request.open("GET", "../sounds/Click1.ogg", true);
+	request.responseType = "arraybuffer";
+	request.onload = function() {
+	  audioContext.decodeAudioData( request.response, function(buffer) { 
+	    	click = buffer;
+		} );
+	}
+	request.send();
+
+    stage = new createjs.Stage("demoCanvas");
 	
 	//var circles = [];
 	canvas = document.getElementById("demoCanvas");
@@ -116,19 +170,40 @@ function init(){
 		t = x;//(x+10*i);
 		circles.push(new createjs.Shape());
 		var color  = '#'+(Math.random()*0xFFFFFF<<0).toString(16);
-		circles[circles.length-1].graphics.beginFill(color).drawCircle(0, 0, 3);
+		circles[circles.length-1].graphics.beginFill(color).drawCircle(0, 0, 5);
 		circles[circles.length-1].x = t;
 		circles[circles.length-1].y = Math.sin(t/70)*100+canvas.height/2+Math.cos(t/10)*20;
 		stage.addChild(circles[circles.length-1]);
 	}
-	
-	for(var i = 54; i < 100; i+=1){
-		noteY = (i-54)*20;
+    
+    
+    var majCount = 0;    
+	for(var i = 54; i < 94; i+=1){
+		noteY = yFromNote(canvas, i);
 		
 		var line = new createjs.Shape();
-		line.graphics.setStrokeStyle(1);
-		line.graphics.beginStroke(createjs.Graphics.getHSL(230, 20, 70));
-		line.graphics.moveTo(0, noteY);
+        if(noteStrings[i%12].indexOf("#") > -1){
+            line.graphics.setStrokeStyle(1);
+            line.graphics.beginStroke(createjs.Graphics.getHSL(230, 30, 85));
+        }
+        else{
+            if(majCount%2){
+                if(i>63 && i<78){
+                    line.graphics.setStrokeStyle(2);
+                    line.graphics.beginStroke(createjs.Graphics.getHSL(2, 40, 0));
+                }
+                else{
+                    line.graphics.setStrokeStyle(1);
+                    line.graphics.beginStroke(createjs.Graphics.getHSL(230, 10, 55));
+                }
+            }
+            else{
+                line.graphics.setStrokeStyle(1);
+                line.graphics.beginStroke(createjs.Graphics.getHSL(230, 10, 65));
+            }
+            majCount++;
+        }
+        line.graphics.moveTo(0, noteY);
 		line.graphics.lineTo(canvas.width,noteY);
 		line.graphics.endStroke();
 		stage.addChild(line);
@@ -148,5 +223,5 @@ function init(){
 	*/
 	stage.update();
 	createjs.Ticker.addEventListener("tick", tick);
-	createjs.Ticker.setFPS(120);
+	createjs.Ticker.setFPS(FPS);
 }
