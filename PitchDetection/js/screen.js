@@ -2,6 +2,8 @@ var renderer = null;
 var stage = null;
 var container = null;
 var underlay = null;
+var click = null;
+var clickNode = null;
 
 function init(){
     renderer = PIXI.autoDetectRenderer(1000, 800,{backgroundColor : 0XFBFBFF});
@@ -21,9 +23,18 @@ function init(){
     container.position.y = 0;
     // (93, 98.5) is center of center bunny sprite in local container coordinates
     // we want it to be in (200, 150) of global coords
-    container.pivot.x = 80 + 26 * 0.5;
-    container.pivot.y = 80 + 37 * 0.5;
     
+    request = new XMLHttpRequest();
+	request.open("GET", "../sounds/Click1.ogg", true);
+	request.responseType = "arraybuffer";
+	request.onload = function() {
+	  audioContext.decodeAudioData( request.response, function(buffer) { 
+	    	click = buffer;
+		} );
+	}
+	request.send();
+
+
     var majCount = 0;    
 	for(var i = 54; i < 94; i+=1){
 		noteY = yFromNote(renderer, i);
@@ -77,12 +88,32 @@ function animate() {
             if (pitch > 1) {
                 var circ = new PIXI.Graphics();
                 circ.lineStyle(0);
-                circ.beginFill(0x205020, 0.5);
-                var noteY = yFromNote(renderer, floatNoteFromPitch(pitch));
-                circ.drawCircle(renderer.width-container.position.x, noteY, 6);
+                var fNote = floatNoteFromPitch(pitch);
+                var noteY = yFromNote(renderer, fNote);
+                var off = Math.min(1, 3*Math.min(fNote-Math.floor(fNote), Math.ceil(fNote)-fNote));
+                circ.beginFill(PIXI.utils.rgb2hex([0.1+0.9*off,0.1+0.9*(1-off),0.25]), 0.5);
+                circ.drawCircle(0, 0, 6);
                 circ.endFill();
+                circ.position.x = renderer.width-container.position.x; 
+                circ.position.y = noteY; 
                 container.addChild(circ);
             }
+        }
+        console.log(count);
+        if (! ( count % 30 ) ){
+            clickNode = audioContext.createBufferSource();
+            clickNode.buffer = click;
+            clickNode.loop = false;
+            clickNode.connect( audioContext.destination );
+            clickNode.start( 0 );
+           
+            var bar = new PIXI.Graphics();
+            bar.lineStyle(1, 0XA6A6A6, 1);
+            bar.moveTo(0, yFromNote(renderer, 77));
+            bar.lineTo(0, yFromNote(renderer, 64));
+            bar.position.x = renderer.width-container.position.x; 
+            bar.position.y = 0;
+            container.addChild(bar);
         }
     }
     //rotate the container!
