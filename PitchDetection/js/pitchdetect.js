@@ -46,7 +46,7 @@ window.onload = function() {
 	
 	init();
 	var request = new XMLHttpRequest();
-	request.open("GET", "../sounds/scale.ogg", true);
+	request.open("GET", "../sounds/canon.ogg", true);
 	request.responseType = "arraybuffer";
 	request.onload = function() {
 	  audioContext.decodeAudioData( request.response, function(buffer) { 
@@ -266,7 +266,7 @@ function autoCorrelateFloat( buf, sampleRate ) {
 */
 
 var MIN_SAMPLES = 0;  // will be initialized when AudioContext is created.
-var GOOD_ENOUGH_CORRELATION = 0.97; // this is the "bar" for how close a correlation needs to be
+var GOOD_ENOUGH_CORRELATION = 0.93; // this is the "bar" for how close a correlation needs to be
 var CLIP_PERCENTAGE = 0.30;
 
 function autoCorrelate( buf, sampleRate ) {
