@@ -82,16 +82,19 @@ function animate() {
     if(deltaT > 1000/FPS){
         lastTime += 1000/FPS;
         count+=1;
-        container.position.x -= 1;
-        if (!(count%6)) {
+        container.position.x -= 3;
+        if (!(count%4)) {
             var pitch = updatePitch();
-            if (pitch > 1) {
+            if (pitch[0] > 1 && pitch[1] > 0.2) {
                 var circ = new PIXI.Graphics();
                 circ.lineStyle(0);
-                var fNote = floatNoteFromPitch(pitch);
+                var fNote = floatNoteFromPitch(pitch[0]);
                 var noteY = yFromNote(renderer, fNote);
                 var off = Math.min(1, 3*Math.min(fNote-Math.floor(fNote), Math.ceil(fNote)-fNote));
-                circ.beginFill(PIXI.utils.rgb2hex([0.1+0.9*off,0.1+0.9*(1-off),0.25]), 0.5);
+                circ.beginFill(
+                        PIXI.utils.rgb2hex([0.1+0.9*off,0.1+0.9*(1-off),0.25]), 
+                        pitch[1]*pitch[1]*pitch[1]
+                );
                 circ.drawCircle(0, 0, 6);
                 circ.endFill();
                 circ.position.x = renderer.width-container.position.x; 
@@ -99,7 +102,6 @@ function animate() {
                 container.addChild(circ);
             }
         }
-        console.log(count);
         if (! ( count % 30 ) ){
             clickNode = audioContext.createBufferSource();
             clickNode.buffer = click;

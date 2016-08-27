@@ -266,20 +266,20 @@ function autoCorrelateFloat( buf, sampleRate ) {
 */
 
 var MIN_SAMPLES = 0;  // will be initialized when AudioContext is created.
-var GOOD_ENOUGH_CORRELATION = 0.93; // this is the "bar" for how close a correlation needs to be
-var CLIP_PERCENTAGE = 0.30;
+var GOOD_ENOUGH_CORRELATION = 0.84; // this is the "bar" for how close a correlation needs to be
+var CLIP_PERCENTAGE = 0.20;
 
 function simpleCorrelate( buf, sampleRate ) {
 	MIN_SAMPLES = 10;
 	console.log(sampleRate);
 	var SIZE = buf.length;
-	var MAX_SAMPLES = Math.floor(SIZE/2);
+	var MAX_SAMPLES = Math.floor(SIZE/4);
 	var best_offset = -1;
 	var best_correlation = 0;
 	var rms = 0;
 	var foundGoodCorrelation = false;
 	var correlations = new Array(MAX_SAMPLES);
-	var max_val = 0; // used for clipping the signal in analysis
+    var max_val = 0; // used for clipping the signal in analysis
 	
 	for (var i=0;i<SIZE;i++) {
 		var val = buf[i];
@@ -335,12 +335,14 @@ function simpleCorrelate( buf, sampleRate ) {
 			//correlation += Math.abs((buf[i])-(buf[i+offset]));
             mPrime = ((buf[i])*(buf[i])+(buf[i+offset])*(buf[i+offset]));
             if(Math.abs(mPrime) < 0.000001){
-                correlation += 1/2;
+                correlation += 1;
             }
             else{
-                correlation += 2*(buf[i])*(buf[i+offset]);
+                //correlation += ((buf[i])-(buf[i+offset]))*((buf[i])-(buf[i+offset]))/mPrime;
+                correlation += 2*(buf[i])*(buf[i+offset])/mPrime;
             }
         }
+		correlation = (correlation/MAX_SAMPLES);
 		//correlation = 1 - (correlation/MAX_SAMPLES);
         
         if (DEBUGCANVAS) {  // This draws the current waveform, useful for debugging
@@ -349,12 +351,13 @@ function simpleCorrelate( buf, sampleRate ) {
         }
 		
         correlations[offset] = correlation; // store it, for the tweaking we need to do below.
-		if ((correlation>GOOD_ENOUGH_CORRELATION) && (correlation > lastCorrelation)) {
+		if (correlation > best_correlation) {
+            best_correlation = correlation;
+            best_offset = offset;
+        }
+        if ((correlation>GOOD_ENOUGH_CORRELATION) && (correlation > lastCorrelation)) {
 			foundGoodCorrelation = true;
-			if (correlation > best_correlation) {
-				best_correlation = correlation;
-				best_offset = offset;
-			}
+			
 		} else if (foundGoodCorrelation) {
 			// short-circuit - we found a good correlation, then a bad one, so we'd just be seeing copies from here.
 			// Now we need to tweak the offset - by interpolating between the values to the left and right of the
@@ -366,15 +369,33 @@ function simpleCorrelate( buf, sampleRate ) {
 			// since foundGoodCorrelation cannot go to true until the second pass (offset=1), and 
 			// we can't drop into this clause until the following pass (else if).
 			var shift = (correlations[best_offset+1] - correlations[best_offset-1])/correlations[best_offset];  
-			return sampleRate/(best_offset+(8*shift));
+			return [sampleRate/(best_offset+(8*shift)), best_correlation];
 		}
 		lastCorrelation = correlation;
 	}
-	if (best_correlation > 0.01) {
-		// console.log("f = " + sampleRate/best_offset + "Hz (rms: " + rms + " confidence: " + best_correlation + ")")
-		return sampleRate/best_offset;
-	}
-	return -1;
+    
+    lastCorrelation = 0;
+	foundGoodCorrelation = false;
+    var bestI = 0;
+    var bestCor = 0;
+    for(var i=MIN_SAMPLES; i<MAX_SAMPLES; i++){
+        var corI = correlations[i];
+        if ( (corI > lastCorrelation) && (corI > best_correlation*0.85) ) {
+            // console.log("f = " + sampleRate/best_offset + "Hz (rms: " + rms + " confidence: " + best_correlation + ")")
+		    foundGoodCorrelation = true;
+            if(corI > bestCor){
+                bestI = i;
+                bestCor = corI;
+            }
+        }
+        else if(foundGoodCorrelation){
+            var shift = (correlations[bestI+1] - correlations[bestI-1])/correlations[bestI];  
+			return [sampleRate/(bestI+(8*shift)), bestCor];
+        }
+
+        lastCorrelation = correlations[i];
+    }
+    return [-1, 0];
 //	var best_frequency = sampleRate/best_offset;
 }
 /*
@@ -489,7 +510,7 @@ function updatePitch( time ) {
         waveCanvas.stroke();
     }
  	
-    if (ac == -1) {
+    if (ac[0] == -1) {
  		detectorElem.className = "vague";
 	 	pitchElem.innerText = "--";
 		noteElem.innerText = "-";
@@ -497,7 +518,7 @@ function updatePitch( time ) {
 		detuneAmount.innerText = "--";
  	} else {
 	 	detectorElem.className = "confident";
-	 	pitch = ac;
+	 	pitch = ac[0];
 	 	pitchElem.innerText = Math.round( pitch ) ;
 	 	var note =  noteFromPitch( pitch );
 		noteElem.innerHTML = noteStrings[note%12];
