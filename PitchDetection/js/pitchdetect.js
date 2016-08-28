@@ -46,7 +46,7 @@ window.onload = function() {
 	
 	init();
 	var request = new XMLHttpRequest();
-	request.open("GET", "../sounds/canon.ogg", true);
+	request.open("GET", "../sounds/accompanied.ogg", true);
 	request.responseType = "arraybuffer";
 	request.onload = function() {
 	  audioContext.decodeAudioData( request.response, function(buffer) { 

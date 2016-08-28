@@ -93,7 +93,7 @@ function animate() {
                 var off = Math.min(1, 3*Math.min(fNote-Math.floor(fNote), Math.ceil(fNote)-fNote));
                 circ.beginFill(
                         PIXI.utils.rgb2hex([0.1+0.9*off,0.1+0.9*(1-off),0.25]), 
-                        pitch[1]*pitch[1]*pitch[1]
+                        pitch[1]*pitch[1]
                 );
                 circ.drawCircle(0, 0, 6);
                 circ.endFill();
